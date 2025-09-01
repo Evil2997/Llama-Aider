@@ -1,0 +1,19 @@
+[project]
+name = "llama-project"
+version = "1.0.0"
+description = "Testing local llama AI"
+requires-python = ">=3.12"
+dependencies = [
+    "aider-chat>=0.86.1",
+    "hf-transfer>=0.1.9",
+    "huggingface-hub[cli]>=0.34.3",
+    "llama-cpp-python[server]>=0.3.16",
+]
+
+[[tool.uv.index]]
+url = "https://abetlen.github.io/llama-cpp-python/whl/cu124"
+
+[tool.uv.workspace]
+members = [
+    "local-llama",
+]

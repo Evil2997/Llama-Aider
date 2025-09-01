@@ -1,0 +1,19 @@
+model: gpt-4o-mini
+openai-api-base: http://127.0.0.1:8000/v1
+
+# Поведение
+git: true
+auto-commits: false
+show-diffs: false
+map-tokens: 0
+
+
+file: # READ-WRITE (RW)
+  - aider/tasks/task_1/aider_TODO.md
+  - main_app/__init__.py
+  - main.py
+
+read: # READ-ONLY (RO)
+  - aider/tasks/CONVENTIONS.md
+  - aider/tasks/aider_rules.md
+  - aider/tasks/task_1/task.md

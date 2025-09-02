@@ -8,25 +8,39 @@ class UsageVisitor(ast.NodeVisitor):
         self.hit = False
 
     def visit_Name(self, node: ast.Name) -> None:
-        if (self.targets and node.id in self.targets) or (self.type_aliases and node.id in self.type_aliases):
+        if (self.targets and node.id in self.targets) or (
+            self.type_aliases and node.id in self.type_aliases
+        ):
             self.hit = True
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         ann = getattr(node, "annotation", None)
-        if isinstance(ann, ast.Name) and self.type_aliases and ann.id in self.type_aliases:
+        if (
+            isinstance(ann, ast.Name)
+            and self.type_aliases
+            and ann.id in self.type_aliases
+        ):
             self.hit = True
         self.generic_visit(node)
 
     def visit_arg(self, node: ast.arg) -> None:
         ann = getattr(node, "annotation", None)
-        if isinstance(ann, ast.Name) and self.type_aliases and ann.id in self.type_aliases:
+        if (
+            isinstance(ann, ast.Name)
+            and self.type_aliases
+            and ann.id in self.type_aliases
+        ):
             self.hit = True
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         ann = getattr(node, "returns", None)
-        if isinstance(ann, ast.Name) and self.type_aliases and ann.id in self.type_aliases:
+        if (
+            isinstance(ann, ast.Name)
+            and self.type_aliases
+            and ann.id in self.type_aliases
+        ):
             self.hit = True
         self.generic_visit(node)
 

@@ -1,8 +1,12 @@
 import argparse
 
+from tools.aider_yaml_generator.constants import DEFAULT_TODO_TAGS, DEFAULT_RAISE_NAMES
+
 
 def args_parser() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Collect RW/RO files and emit Aider YAML config.")
+    p = argparse.ArgumentParser(
+        description="Collect RW/RO files and emit Aider YAML config."
+    )
     p.add_argument(
         "--root",
         required=True,
@@ -123,4 +127,31 @@ def args_parser() -> argparse.Namespace:
         action="store_true",
         help="Show YAML in stdout but DO NOT write file",
     )
+
+    # === Новые флаги поиска маркеров (raise + теги комментариев) ===
+    p.add_argument(
+        "--scan-raises",
+        action="store_true",
+        default=True,
+        help="Enable scanning for specific raise exceptions (default: on)",
+    )
+    p.add_argument(
+        "--scan-tags",
+        action="store_true",
+        default=True,
+        help="Enable scanning for comment tags like TODO/FIXME/etc. (default: on)",
+    )
+    p.add_argument(
+        "--raise-names",
+        nargs="*",
+        default=list(DEFAULT_RAISE_NAMES),
+        help="Exception names to treat as markers in 'raise' (default: from constants)",
+    )
+    p.add_argument(
+        "--tag-list",
+        nargs="*",
+        default=list(DEFAULT_TODO_TAGS),
+        help="Comment tags to detect (default: from constants)",
+    )
+
     return p.parse_args()

@@ -16,7 +16,9 @@ def load_existing_model_from_yaml(path: pathlib.Path) -> str | None:
     raw = m.group(1).strip()
     raw = raw.split("#", 1)[0].strip()
 
-    if (raw.startswith('"') and '"' in raw[1:]) or (raw.startswith("'") and "'" in raw[1:]):
+    if (raw.startswith('"') and '"' in raw[1:]) or (
+        raw.startswith("'") and "'" in raw[1:]
+    ):
         q = raw[0]
         try:
             end = raw.index(q, 1)

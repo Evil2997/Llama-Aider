@@ -19,19 +19,32 @@ import re
 import sys
 
 from tools.aider_yaml_generator.cli import args_parser
+from tools.aider_yaml_generator.constants import (
+    DEFAULT_MODEL,
+    MIB,
+)
 from tools.aider_yaml_generator.extended_features.build_yaml_text import build_yaml_text
-from tools.aider_yaml_generator.extended_features.collect_with_depth import collect_with_depth
-from tools.aider_yaml_generator.extended_features.ensure_list_unique_sorted import ensure_list_unique_sorted
+from tools.aider_yaml_generator.extended_features.collect_with_depth import (
+    collect_with_depth,
+)
+from tools.aider_yaml_generator.extended_features.ensure_list_unique_sorted import (
+    ensure_list_unique_sorted,
+)
 from tools.aider_yaml_generator.extended_features.estimate_tokens import estimate_tokens
 from tools.aider_yaml_generator.extended_features.file_entry import FileEntry
 from tools.aider_yaml_generator.extended_features.human_bytes import human_bytes
 from tools.aider_yaml_generator.extended_features.largest_top_n import largest_top_n
-from tools.aider_yaml_generator.extended_features.load_existing_model_from_yaml import load_existing_model_from_yaml
+from tools.aider_yaml_generator.extended_features.load_existing_model_from_yaml import (
+    load_existing_model_from_yaml,
+)
 from tools.aider_yaml_generator.extended_features.read_text_bytes import read_text_bytes
 from tools.aider_yaml_generator.extended_features.rel_or_abs import rel_or_abs
+from tools.aider_yaml_generator.path_utils.file_has_markers import file_marker_hits
 from tools.aider_yaml_generator.path_utils.file_has_usage import file_has_usage
 from tools.aider_yaml_generator.path_utils.iter_py import iter_py
-from tools.aider_yaml_generator.path_utils.normalize_seed_to_path import normalize_seed_to_path
+from tools.aider_yaml_generator.path_utils.normalize_seed_to_path import (
+    normalize_seed_to_path,
+)
 
 
 def main() -> None:
@@ -46,7 +59,9 @@ def main() -> None:
         sys.exit(2)
 
     if not (args.seeds or args.vars or args.types):
-        print("[ERR] Provide at least one of: --seed, --vars, or --types", file=sys.stderr)
+        print(
+            "[ERR] Provide at least one of: --seed, --vars, or --types", file=sys.stderr
+        )
         sys.exit(2)
 
     # Seeds -> absolute paths
@@ -58,38 +73,78 @@ def main() -> None:
             sys.exit(2)
         seed_paths.append(p)
 
-    # Usage scan inside namespace
+    # Usage scan inside namespace (по именам/типам)
     targets = set(args.vars or [])
     type_aliases = set(args.types or [])
     alt_tokens: set[str] = set()
     alt_tokens |= targets
     alt_tokens |= type_aliases
-    str_re = re.compile(r"\b(" + "|".join(map(re.escape, sorted(alt_tokens))) + r")\b") if alt_tokens else None
+    str_re = (
+        re.compile(r"\b(" + "|".join(map(re.escape, sorted(alt_tokens))) + r")\b")
+        if alt_tokens
+        else None
+    )
 
     usage_files: list[pathlib.Path] = []
     if targets or type_aliases:
-        usage_files.extend([py for py in iter_py(ns_root) if file_has_usage(py, targets, type_aliases, str_re)])
+        usage_files.extend(
+            [
+                py
+                for py in iter_py(ns_root)
+                if file_has_usage(py, targets, type_aliases, str_re)
+            ]
+        )
 
+    # AIDER_TODO.md — включаем как RW, если указан и существует
     todo_paths: list[pathlib.Path] = []
     if args.todo:
         todo_path = pathlib.Path(args.todo)
-        todo_path = (root / todo_path).resolve() if not todo_path.is_absolute() else todo_path.resolve()
+        todo_path = (
+            (root / todo_path).resolve()
+            if not todo_path.is_absolute()
+            else todo_path.resolve()
+        )
         if todo_path.exists():
-            # включаем как RW
             todo_paths.append(todo_path)
         else:
             print(f"[WARN] --todo not found on disk: {todo_path}", file=sys.stderr)
 
-    # RW = seeds + usage_hits
-    combined_rw = ensure_list_unique_sorted([*seed_paths, *todo_paths, *usage_files])
+    # === Новый блок: авто-сиды по маркерам (raise + TO-DO/FIX-ME/etc.) ===
+    auto_seed_paths: list[pathlib.Path] = []
+    auto_raise_count = 0
+    auto_tag_count = 0
 
-    # Depth-limited import traversal
-    rw_map, ro_map, unresolved = collect_with_depth(root, list(combined_rw), [namespace], args.max_depth)
+    if args.scan_raises or args.scan_tags:
+        raise_names = list(args.raise_names or [])
+        tag_list = list(args.tag_list or [])
 
-    # Ensure all usage_hits are RW (even if not in seeds)
+        for py in iter_py(ns_root):
+            raise_hit, tag_hit = file_marker_hits(py, raise_names, tag_list)
+            if raise_hit or tag_hit:
+                auto_seed_paths.append(py)
+                auto_raise_count += int(bool(raise_hit))
+                auto_tag_count += int(bool(tag_hit))
+
+    # RW = seeds + usage_hits + AIDER_TODO + auto-seeds
+    combined_rw = ensure_list_unique_sorted(
+        [*seed_paths, *todo_paths, *usage_files, *auto_seed_paths]
+    )
+
+    # Depth-limited import traversal:
+    # ВАЖНО: передаём именно combined_rw как начальные точки (depth=0)
+    rw_map, ro_map, unresolved = collect_with_depth(
+        root, list(combined_rw), [namespace], args.max_depth
+    )
+
+    # Ensure usage_hits are RW (даже если не были сидом)
     for uf in usage_files:
         if uf not in rw_map:
             rw_map[uf] = FileEntry(uf, 0)
+
+    # Ensure auto-seeds are RW (на всякий случай, если не попали)
+    for ap in auto_seed_paths:
+        if ap not in rw_map:
+            rw_map[ap] = FileEntry(ap, 0)
 
     rw_set = set(rw_map.keys())
     ro_entries = list(ro_map.values())
@@ -123,14 +178,14 @@ def main() -> None:
     # Remove any overlaps between RW and RO
     ro_ordered = [p for p in ro_ordered if p not in rw_set]
 
-    # Base bytes = RW + always-include (they go above limit)
+    # Base bytes = RW + always-include (они идут сверх лимита)
     base_paths = ensure_list_unique_sorted([*rw_set, *always_final])
     base_bytes = sum(read_text_bytes(p) for p in base_paths)
 
     # Convert MiB to bytes if provided
     max_total_bytes = int(args.max_total_bytes or 0)
     if args.max_total_mib and args.max_total_mib > 0:
-        max_total_bytes = int(args.max_total_mib * 1024 * 1024)
+        max_total_bytes = int(args.max_total_mib * MIB)
 
     # Select RO under limit (beyond base)
     selected_ro: list[pathlib.Path] = []
@@ -157,7 +212,7 @@ def main() -> None:
     sub = "-" * 72
 
     print(sep)
-    print("READ-WRITE (RW) — seeds + usage hits")
+    print("READ-WRITE (RW) — seeds + usage hits + auto-seeds (markers)")
     print(sub)
     if final_rw:
         for p in final_rw:
@@ -166,7 +221,9 @@ def main() -> None:
         print("(empty)")
 
     print("\n" + sep)
-    print("READ-ONLY (RO) — always-include (above limit) + import deps (depth-limited under limit)")
+    print(
+        "READ-ONLY (RO) — always-include (above limit) + import deps (depth-limited under limit)"
+    )
     print(sub)
     if final_ro:
         for p in final_ro:
@@ -176,6 +233,17 @@ def main() -> None:
                 print(str(p))
     else:
         print("(empty)")
+
+    # Доп. сводка по авто-сидáм
+    if args.scan_raises or args.scan_tags:
+        print("\n" + sep)
+        print("AUTO-SEEDS — marker hits summary")
+        print(sub)
+        print(f"files with markers: {len(auto_seed_paths)}")
+        if args.scan_raises:
+            print(f"  raise-matches:    {auto_raise_count}")
+        if args.scan_tags:
+            print(f"  tag-matches:      {auto_tag_count}")
 
     # Sizes / tokens summary
     if args.show_sizes:
@@ -187,10 +255,14 @@ def main() -> None:
         print("\n" + sep)
         print("SIZE SUMMARY")
         print(sub)
-        print(f"RW files: {len(final_rw)}; RO files: {len(final_ro)}; TOTAL files: {len(all_paths)}")
+        print(
+            f"RW files: {len(final_rw)}; RO files: {len(final_ro)}; TOTAL files: {len(all_paths)}"
+        )
         print(f"Base (RW+always): {human_bytes(base_bytes)}")
         print(f"Total size:       {human_bytes(total_bytes)} ({total_bytes} bytes)")
-        print(f"Est. tokens ~= total_chars / {args.chars_per_token:g} = ~{est_tokens:,}")
+        print(
+            f"Est. tokens ~= total_chars / {args.chars_per_token:g} = ~{est_tokens:,}"
+        )
 
         largest_top_n(
             all_paths=all_paths,
@@ -209,16 +281,15 @@ def main() -> None:
     if args.model:
         model_to_write = args.model
     else:
-        default_model = "ollama_chat/qwen3-coder:30b"
         if args.emit_config:
             emit_path = pathlib.Path(args.emit_config).resolve()
             if emit_path.exists():
                 prev = load_existing_model_from_yaml(emit_path)
-                model_to_write = prev if prev else default_model
+                model_to_write = prev if prev else DEFAULT_MODEL
             else:
-                model_to_write = default_model
+                model_to_write = DEFAULT_MODEL
         else:
-            model_to_write = default_model
+            model_to_write = DEFAULT_MODEL
 
     yaml_meta = dict(
         namespace=namespace,

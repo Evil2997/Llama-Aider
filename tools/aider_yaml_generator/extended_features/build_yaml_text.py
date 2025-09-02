@@ -13,9 +13,7 @@ def build_yaml_text(
     root: pathlib.Path,
     path_mode: str,
 ) -> str:
-    lines: list[str] = []
-    lines.append("# авто-сгенерировано collect_rw_ro.py")
-    lines.append(f"# root: {root}")
+    lines: list[str] = ["# авто-сгенерировано collect_rw_ro.py", f"# root: {root}"]
     ns = meta.get("namespace")
     if ns:
         lines.append(f"# namespace: {ns}")

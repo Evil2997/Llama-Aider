@@ -4,6 +4,11 @@ set -o errexit \
     -o pipefail
 
 # ====================================[НАСТРОЙКИ ДЛЯ БЫСТРОГО РЕДАКТИРОВАНИЯ]===========================================
+# Модель для YAML (опционально):
+# - Пусто => если файл EMIT_CONFIG уже есть, возьмём model из него; если нет — дефолт "ollama_chat/qwen3-coder:30b"
+# - Укажи строку, чтобы перезаписать (пример: "ollama_chat/qwen3-coder:7b")
+MODEL_FOR_YAML="ollama_chat/qwen3-coder:30b"
+
 TASK_NAME="added_pydantic_model"      # название текущей таски (папка внутри aider-template/tasks)
 
 SEEDS=(
@@ -16,6 +21,15 @@ VARS=(
 TYPES=(
   "T_AUTHENTICATED_COOKIES"
   "T_AUTHENTICATED_SESSIONS"
+)
+# Имена исключений, которые считаем маркерами (raise ...)
+RAISE_NAMES=(
+"NotImplementedError"
+)
+
+# Теги в комментариях (# TO_DO, # FIX_ME и т.п.)
+TAG_LIST=(
+"TODO FIXME"
 )
 
 # DRY RUN:
@@ -33,11 +47,6 @@ TASK_REL_DIR="aider-template/tasks/${TASK_NAME}"
 
 # Путь для записи итогового aider-конфига (полный путь)
 EMIT_CONFIG="$ROOT/${TASK_REL_DIR}/aider.conf.yaml"
-
-# Модель для YAML (опционально):
-# - Пусто => если файл EMIT_CONFIG уже есть, возьмём model из него; если нет — дефолт "ollama_chat/qwen3-coder:30b"
-# - Укажи строку, чтобы перезаписать (пример: "ollama_chat/qwen3-coder:7b")
-MODEL_FOR_YAML="ollama_chat/qwen3-coder:30b"
 
 # Пути писать в YAML: "root" (относительно $ROOT) или "abs" (абсолютные)
 USE_RELATIVE="root"
@@ -94,6 +103,8 @@ ARGS=(
 [[ -n "$RULES"       ]] && ARGS+=( --rules "$RULES" )
 [[ -n "$TASK"        ]] && ARGS+=( --task "$TASK" )
 [[ -n "$TODO"        ]] && ARGS+=( --todo "$TODO" )
+[[ -n "$RAISE_NAMES" ]] && ARGS+=( --raise-names "$RAISE_NAMES" )
+[[ -n "$TAG_LIST"    ]] && ARGS+=( --tag-list "$TAG_LIST" )
 
 # флаги
 [[ "$SHOW_SIZES" == "true" ]] && ARGS+=( --show-sizes )

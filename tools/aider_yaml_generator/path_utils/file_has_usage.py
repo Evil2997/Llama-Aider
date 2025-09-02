@@ -5,7 +5,12 @@ import re
 from tools.aider_yaml_generator.ast.usage_visitor import UsageVisitor
 
 
-def file_has_usage(py: pathlib.Path, targets: set[str], type_aliases: set[str], str_re: re.Pattern | None) -> bool:
+def file_has_usage(
+    py: pathlib.Path,
+    targets: set[str],
+    type_aliases: set[str],
+    str_re: re.Pattern | None,
+) -> bool:
     try:
         text = py.read_text(encoding="utf-8", errors="ignore")
     except Exception:

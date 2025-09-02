@@ -2,7 +2,9 @@ import pathlib
 
 from tools.aider_yaml_generator.extended_features.file_entry import FileEntry
 from tools.aider_yaml_generator.path_utils.extract_imports import extract_imports
-from tools.aider_yaml_generator.path_utils.resolve_module_to_path import resolve_module_to_path
+from tools.aider_yaml_generator.path_utils.resolve_module_to_path import (
+    resolve_module_to_path,
+)
 
 
 def collect_with_depth(

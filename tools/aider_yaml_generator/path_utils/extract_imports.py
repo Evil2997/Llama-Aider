@@ -1,11 +1,15 @@
 import ast
 import pathlib
 
-from tools.aider_yaml_generator.path_utils.resolve_relative_import import resolve_relative_import
+from tools.aider_yaml_generator.path_utils.resolve_relative_import import (
+    resolve_relative_import,
+)
 from tools.aider_yaml_generator.path_utils.to_module_name import to_module_name
 
 
-def extract_imports(project_root: pathlib.Path, file_path: pathlib.Path, only_prefixes: list[str]) -> set[str]:
+def extract_imports(
+    project_root: pathlib.Path, file_path: pathlib.Path, only_prefixes: list[str]
+) -> set[str]:
     try:
         text = file_path.read_text(encoding="utf-8", errors="ignore")
     except Exception:
@@ -34,6 +38,9 @@ def extract_imports(project_root: pathlib.Path, file_path: pathlib.Path, only_pr
                 result.add(base)
             for alias in node.names:
                 candidate = f"{base}.{alias.name}"
-                if any(candidate == p or candidate.startswith(p + ".") for p in only_prefixes):
+                if any(
+                    candidate == p or candidate.startswith(p + ".")
+                    for p in only_prefixes
+                ):
                     result.add(candidate)
     return result

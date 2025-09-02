@@ -1,6 +1,4 @@
-KIB = 1024
-MIB = 1024 * KIB
-GIB = 1024 * MIB
+from tools.aider_yaml_generator.constants import KIB, MIB, GIB
 
 
 def human_bytes(n: int) -> str:

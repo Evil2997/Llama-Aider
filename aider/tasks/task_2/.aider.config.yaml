@@ -1,0 +1,25 @@
+model: ollama_chat/mistral-local
+# или:
+#      ollama_chat/phi35-local,
+#      ollama_chat/deepseek-lite-local
+env-file: .env
+
+git: true
+auto-commits: true
+yes-always: true
+show-diffs: false
+
+dark-mode: true
+
+file: # READ-WRITE (RW)
+  - aider/tasks/task_1/aider_TODO.md
+  - main_app/__init__.py
+  - main_app/algos.py
+  - main_app/demo.py
+  - main.py
+
+read: # READ-ONLY (RO)
+  - aider/tasks/CONVENTIONS.md
+  - aider/tasks/aider_rules.md
+  - aider/tasks/task_1/task.md
+# aider --config /home/dima/PycharmProjects/Llama_project/aider/tasks/task_2/.aider.config.yaml

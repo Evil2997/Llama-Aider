@@ -2,6 +2,14 @@
 
 ---
 
+The output should be:
+```python
+# file/path/file_name.py
+<python file code write here!>
+```
+
+---
+
 These rules apply to **all tasks** in the `tasks/` directory.
 Every task folder contains:
 

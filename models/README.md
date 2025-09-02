@@ -50,4 +50,3 @@ python3 -m llama_cpp.server \
   --host 0.0.0.0 --port 8000
 ```
 > Подсказка: для быстрых загрузок можно включить `HF_HUB_ENABLE_HF_TRANSFER=1`.
-
